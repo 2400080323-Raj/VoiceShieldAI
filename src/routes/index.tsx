@@ -138,20 +138,20 @@ function Index() {
       form.append("audio", file);
       const res = await fetch("/api/analyze", { method: "POST", body: form });
       const data = (await res.json()) as Record<string, number | string>;
-      if (!res.ok) throw new Error(String(data.error ?? "Analysis failed"));
+      if (!res.ok) throw new Error(String(data["error"] ?? "Analysis failed"));
 
       const scenario: DemoScenario = {
         label: file.name,
         callerName: "Uploaded sample",
         callerRole: file.name,
-        spoofProbability: Number(data.spoofProbability),
-        acousticScore: Number(data.acousticScore),
-        prosodyScore: Number(data.prosodyScore),
-        spectralScore: Number(data.spectralScore),
+        spoofProbability: Number(data["spoofProbability"]),
+        acousticScore: Number(data["acousticScore"]),
+        prosodyScore: Number(data["prosodyScore"]),
+        spectralScore: Number(data["spectralScore"]),
         transactionAmount: 0,
         durationSec: 0,
         note:
-          data.source === "model"
+          data["source"] === "model"
             ? "Scores returned by the connected anti-spoofing model."
             : "Placeholder scorer — set MODEL_API_URL to connect your model.",
       };
