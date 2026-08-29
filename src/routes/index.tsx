@@ -94,7 +94,9 @@ function Index() {
   const [step, setStep] = useState(0);
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [displaySpoof, setDisplaySpoof] = useState(0);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const timerRef = useRef<number | null>(null);
+  const fileRef = useRef<HTMLInputElement | null>(null);
 
   const runAnalysis = useCallback((scenario: DemoScenario) => {
     if (timerRef.current) window.clearInterval(timerRef.current);
@@ -123,6 +125,59 @@ function Index() {
         setLog((prev) => [result, ...prev].slice(0, 8));
       }
     }, 650);
+  }, []);
+
+  const runUploadedAudio = useCallback(async (file: File) => {
+    setUploadError(null);
+    if (timerRef.current) window.clearInterval(timerRef.current);
+    setAnalyzing(true);
+    setCurrent(null);
+    setStep(2);
+    try {
+      const form = new FormData();
+      form.append("audio", file);
+      const res = await fetch("/api/analyze", { method: "POST", body: form });
+      const data = (await res.json()) as Record<string, number | string>;
+      if (!res.ok) throw new Error(String(data.error ?? "Analysis failed"));
+
+      const scenario: DemoScenario = {
+        label: file.name,
+        callerName: "Uploaded sample",
+        callerRole: file.name,
+        spoofProbability: Number(data.spoofProbability),
+        acousticScore: Number(data.acousticScore),
+        prosodyScore: Number(data.prosodyScore),
+        spectralScore: Number(data.spectralScore),
+        transactionAmount: 0,
+        durationSec: 0,
+        note:
+          data.source === "model"
+            ? "Scores returned by the connected anti-spoofing model."
+            : "Placeholder scorer — set MODEL_API_URL to connect your model.",
+      };
+      let s = 2;
+      timerRef.current = window.setInterval(() => {
+        s += 1;
+        setStep(s);
+        if (s >= PIPELINE_STEPS.length) {
+          if (timerRef.current) window.clearInterval(timerRef.current);
+          const result = makeResult(scenario, new Date());
+          const start = performance.now();
+          const tick = (t: number) => {
+            const p = Math.min(1, (t - start) / 900);
+            setDisplaySpoof(Math.round(scenario.spoofProbability * (1 - Math.pow(1 - p, 3))));
+            if (p < 1) requestAnimationFrame(tick);
+          };
+          requestAnimationFrame(tick);
+          setCurrent(result);
+          setAnalyzing(false);
+          setLog((prev) => [result, ...prev].slice(0, 8));
+        }
+      }, 450);
+    } catch (err) {
+      setAnalyzing(false);
+      setUploadError(err instanceof Error ? err.message : "Analysis failed");
+    }
   }, []);
 
   useEffect(() => () => {
