@@ -279,6 +279,29 @@ function Index() {
               ))}
             </div>
 
+            {/* Upload real audio → /api/analyze */}
+            <div className="mt-3">
+              <input
+                ref={fileRef}
+                type="file"
+                accept="audio/*"
+                className="hidden"
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) runUploadedAudio(f);
+                  e.target.value = "";
+                }}
+              />
+              <button
+                onClick={() => fileRef.current?.click()}
+                disabled={analyzing}
+                className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+              >
+                <Mic className="h-4 w-4" /> Analyze real audio via /api/analyze
+              </button>
+              {uploadError && <p className="mt-2 text-xs text-risk-critical">{uploadError}</p>}
+            </div>
+
             {/* Pipeline */}
             <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-6">
               {PIPELINE_STEPS.map((p, i) => {
