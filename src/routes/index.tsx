@@ -15,6 +15,9 @@ import {
   BadgeCheck,
   ScanLine,
   Radio,
+  Play,
+  Pause,
+  X,
 } from "lucide-react";
 import heroWave from "@/assets/waveform-hero.jpg";
 import {
@@ -88,6 +91,15 @@ function makeResult(s: DemoScenario, timestamp: Date): AnalysisResult {
   };
 }
 
+interface PendingAudio {
+  file: File;
+  url: string;
+  peaks: number[]; // 0..1 normalized
+  sampleRate: number;
+  channels: number;
+  durationSec: number;
+}
+
 function Index() {
   const [log, setLog] = useState<AnalysisResult[]>(seedLog);
   const [analyzing, setAnalyzing] = useState(false);
@@ -95,8 +107,57 @@ function Index() {
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [displaySpoof, setDisplaySpoof] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingAudio | null>(null);
+  const [playing, setPlaying] = useState(false);
   const timerRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const clearPending = useCallback(() => {
+    setPending((p) => {
+      if (p) URL.revokeObjectURL(p.url);
+      return null;
+    });
+    setPlaying(false);
+    audioRef.current?.pause();
+  }, []);
+
+  const loadPending = useCallback(
+    async (file: File) => {
+      setUploadError(null);
+      clearPending();
+      try {
+        const bytes = await file.arrayBuffer();
+        const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const buf = await new Ctx().decodeAudioData(bytes);
+        const data = buf.getChannelData(0);
+        const N = 96;
+        const peaks: number[] = [];
+        const block = Math.max(1, Math.floor(data.length / N));
+        for (let i = 0; i < N; i++) {
+          let max = 0;
+          const start = i * block;
+          for (let j = start; j < Math.min(start + block, data.length); j += 16) {
+            const v = Math.abs(data[j] ?? 0);
+            if (v > max) max = v;
+          }
+          peaks.push(max);
+        }
+        const peakMax = Math.max(...peaks, 0.01);
+        setPending({
+          file,
+          url: URL.createObjectURL(file),
+          peaks: peaks.map((p) => p / peakMax),
+          sampleRate: buf.sampleRate,
+          channels: buf.numberOfChannels,
+          durationSec: buf.duration,
+        });
+      } catch {
+        setUploadError(`Could not decode "${file.name}" — unsupported or corrupted audio.`);
+      }
+    },
+    [clearPending],
+  );
 
   const runAnalysis = useCallback((scenario: DemoScenario) => {
     if (timerRef.current) window.clearInterval(timerRef.current);
@@ -129,6 +190,7 @@ function Index() {
 
   const runUploadedAudio = useCallback(async (file: File) => {
     setUploadError(null);
+    clearPending();
     if (timerRef.current) window.clearInterval(timerRef.current);
     setAnalyzing(true);
     setCurrent(null);
@@ -178,11 +240,18 @@ function Index() {
       setAnalyzing(false);
       setUploadError(err instanceof Error ? err.message : "Analysis failed");
     }
-  }, []);
+  }, [clearPending]);
 
-  useEffect(() => () => {
-    if (timerRef.current) window.clearInterval(timerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      setPending((p) => {
+        if (p) URL.revokeObjectURL(p.url);
+        return null;
+      });
+    },
+    [],
+  );
 
   const blocked = log.filter((r) => r.action === "BLOCK").length;
   const verified = log.filter((r) => r.action === "VERIFY").length;
@@ -279,7 +348,7 @@ function Index() {
               ))}
             </div>
 
-            {/* Upload real audio → /api/analyze */}
+            {/* Upload real audio → preview → /api/analyze */}
             <div className="mt-3">
               <input
                 ref={fileRef}
@@ -288,7 +357,7 @@ function Index() {
                 className="hidden"
                 onChange={(e) => {
                   const f = e.target.files?.[0];
-                  if (f) runUploadedAudio(f);
+                  if (f) loadPending(f);
                   e.target.value = "";
                 }}
               />
@@ -297,10 +366,95 @@ function Index() {
                 disabled={analyzing}
                 className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
               >
-                <Mic className="h-4 w-4" /> Analyze real audio via /api/analyze
+                <Mic className="h-4 w-4" /> Select audio to analyze
               </button>
               {uploadError && <p className="mt-2 text-xs text-risk-critical">{uploadError}</p>}
             </div>
+
+            {/* Pending audio preview */}
+            {pending && (
+              <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate font-mono text-xs text-foreground">{pending.file.name}</p>
+                  <button
+                    onClick={clearPending}
+                    className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    aria-label="Discard audio"
+                  >
+                    <X className="h-3.5 w-3.5" />
+                  </button>
+                </div>
+
+                <div className="mt-2 flex items-center gap-3">
+                  <button
+                    onClick={() => {
+                      const el = audioRef.current;
+                      if (!el) return;
+                      if (playing) {
+                        el.pause();
+                      } else {
+                        void el.play();
+                      }
+                    }}
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/50 bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+                    aria-label={playing ? "Pause" : "Play"}
+                  >
+                    {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-[1px]" />}
+                  </button>
+                  {/* Waveform */}
+                  <div className="flex h-12 flex-1 items-center gap-[2px] overflow-hidden">
+                    {pending.peaks.map((p, i) => (
+                      <span
+                        key={i}
+                        className={`w-full min-w-[2px] rounded-full ${playing ? "bg-primary" : "bg-primary/50"}`}
+                        style={{ height: `${Math.max(6, p * 100)}%` }}
+                      />
+                    ))}
+                  </div>
+                </div>
+                <audio
+                  ref={audioRef}
+                  src={pending.url}
+                  onPlay={() => setPlaying(true)}
+                  onPause={() => setPlaying(false)}
+                  onEnded={() => setPlaying(false)}
+                  className="hidden"
+                />
+
+                {/* Signal info */}
+                <div className="mt-2 flex flex-wrap gap-1.5 font-mono text-[10px]">
+                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                    {(pending.sampleRate / 1000).toFixed(1)} kHz
+                  </span>
+                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                    {pending.durationSec.toFixed(2)} s
+                  </span>
+                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                    {pending.channels === 1 ? "mono" : `${pending.channels}ch`}
+                  </span>
+                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                    {(pending.file.size / 1024).toFixed(0)} KB
+                  </span>
+                  <span
+                    className={`rounded border px-2 py-1 ${
+                      pending.sampleRate < 16000
+                        ? "border-risk-medium/40 bg-risk-medium/10 text-risk-medium"
+                        : "border-risk-low/40 bg-risk-low/10 text-risk-low"
+                    }`}
+                  >
+                    {pending.sampleRate < 16000 ? "below 16 kHz model input" : "meets 16 kHz model input"}
+                  </span>
+                </div>
+
+                <button
+                  onClick={() => runUploadedAudio(pending.file)}
+                  disabled={analyzing}
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                >
+                  <ScanLine className="h-4 w-4" /> Run analysis
+                </button>
+              </div>
+            )}
 
             {/* Pipeline */}
             <div className="mt-6 grid grid-cols-3 gap-2 sm:grid-cols-6">
