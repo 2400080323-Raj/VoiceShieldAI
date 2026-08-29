@@ -190,6 +190,7 @@ function Index() {
 
   const runUploadedAudio = useCallback(async (file: File) => {
     setUploadError(null);
+    clearPending();
     if (timerRef.current) window.clearInterval(timerRef.current);
     setAnalyzing(true);
     setCurrent(null);
