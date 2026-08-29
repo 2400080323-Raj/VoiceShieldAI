@@ -240,11 +240,18 @@ function Index() {
       setAnalyzing(false);
       setUploadError(err instanceof Error ? err.message : "Analysis failed");
     }
-  }, []);
+  }, [clearPending]);
 
-  useEffect(() => () => {
-    if (timerRef.current) window.clearInterval(timerRef.current);
-  }, []);
+  useEffect(
+    () => () => {
+      if (timerRef.current) window.clearInterval(timerRef.current);
+      setPending((p) => {
+        if (p) URL.revokeObjectURL(p.url);
+        return null;
+      });
+    },
+    [],
+  );
 
   const blocked = log.filter((r) => r.action === "BLOCK").length;
   const verified = log.filter((r) => r.action === "VERIFY").length;
