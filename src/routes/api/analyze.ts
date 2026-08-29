@@ -32,7 +32,7 @@ function placeholderScore(bytes: Uint8Array): ModelScores {
   let h3 = 0;
   const stride = Math.max(1, Math.floor(bytes.length / 4096));
   for (let i = 0; i < bytes.length; i += stride) {
-    const b = bytes[i];
+    const b = bytes[i] ?? 0;
     h1 = (h1 * 31 + b) >>> 0;
     h2 = (h2 * 17 + b * (i % 7)) >>> 0;
     h3 = (h3 + b * b) >>> 0;
