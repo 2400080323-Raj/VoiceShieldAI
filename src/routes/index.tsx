@@ -15,6 +15,9 @@ import {
   BadgeCheck,
   ScanLine,
   Radio,
+  Play,
+  Pause,
+  X,
 } from "lucide-react";
 import heroWave from "@/assets/waveform-hero.jpg";
 import {
@@ -88,6 +91,15 @@ function makeResult(s: DemoScenario, timestamp: Date): AnalysisResult {
   };
 }
 
+interface PendingAudio {
+  file: File;
+  url: string;
+  peaks: number[]; // 0..1 normalized
+  sampleRate: number;
+  channels: number;
+  durationSec: number;
+}
+
 function Index() {
   const [log, setLog] = useState<AnalysisResult[]>(seedLog);
   const [analyzing, setAnalyzing] = useState(false);
@@ -95,8 +107,57 @@ function Index() {
   const [current, setCurrent] = useState<AnalysisResult | null>(null);
   const [displaySpoof, setDisplaySpoof] = useState(0);
   const [uploadError, setUploadError] = useState<string | null>(null);
+  const [pending, setPending] = useState<PendingAudio | null>(null);
+  const [playing, setPlaying] = useState(false);
   const timerRef = useRef<number | null>(null);
   const fileRef = useRef<HTMLInputElement | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const clearPending = useCallback(() => {
+    setPending((p) => {
+      if (p) URL.revokeObjectURL(p.url);
+      return null;
+    });
+    setPlaying(false);
+    audioRef.current?.pause();
+  }, []);
+
+  const loadPending = useCallback(
+    async (file: File) => {
+      setUploadError(null);
+      clearPending();
+      try {
+        const bytes = await file.arrayBuffer();
+        const Ctx = window.AudioContext ?? (window as unknown as { webkitAudioContext: typeof AudioContext }).webkitAudioContext;
+        const buf = await new Ctx().decodeAudioData(bytes);
+        const data = buf.getChannelData(0);
+        const N = 96;
+        const peaks: number[] = [];
+        const block = Math.max(1, Math.floor(data.length / N));
+        for (let i = 0; i < N; i++) {
+          let max = 0;
+          const start = i * block;
+          for (let j = start; j < Math.min(start + block, data.length); j += 16) {
+            const v = Math.abs(data[j] ?? 0);
+            if (v > max) max = v;
+          }
+          peaks.push(max);
+        }
+        const peakMax = Math.max(...peaks, 0.01);
+        setPending({
+          file,
+          url: URL.createObjectURL(file),
+          peaks: peaks.map((p) => p / peakMax),
+          sampleRate: buf.sampleRate,
+          channels: buf.numberOfChannels,
+          durationSec: buf.duration,
+        });
+      } catch {
+        setUploadError(`Could not decode "${file.name}" — unsupported or corrupted audio.`);
+      }
+    },
+    [clearPending],
+  );
 
   const runAnalysis = useCallback((scenario: DemoScenario) => {
     if (timerRef.current) window.clearInterval(timerRef.current);
