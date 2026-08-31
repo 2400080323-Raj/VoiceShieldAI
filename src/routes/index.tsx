@@ -19,7 +19,6 @@ import {
   Pause,
   X,
 } from "lucide-react";
-import heroWave from "@/assets/waveform-hero.jpg";
 import {
   DEMO_SCENARIOS,
   computeRisk,
@@ -61,10 +60,10 @@ const PIPELINE_STEPS = [
 ];
 
 const RISK_BADGE: Record<RiskLevel, string> = {
-  LOW: "bg-risk-low/10 text-risk-low border-risk-low/40",
-  MEDIUM: "bg-risk-medium/10 text-risk-medium border-risk-medium/40",
-  HIGH: "bg-risk-high/10 text-risk-high border-risk-high/40",
-  CRITICAL: "bg-risk-critical/10 text-risk-critical border-risk-critical/40",
+  LOW: "bg-risk-low/10 text-risk-low",
+  MEDIUM: "bg-risk-medium/10 text-risk-medium",
+  HIGH: "bg-risk-high/10 text-risk-high",
+  CRITICAL: "bg-risk-critical/10 text-risk-critical",
 };
 
 function seedLog(): AnalysisResult[] {
@@ -94,7 +93,7 @@ function makeResult(s: DemoScenario, timestamp: Date): AnalysisResult {
 interface PendingAudio {
   file: File;
   url: string;
-  peaks: number[]; // 0..1 normalized
+  peaks: number[];
   sampleRate: number;
   channels: number;
   durationSec: number;
@@ -173,7 +172,6 @@ function Index() {
       if (s >= PIPELINE_STEPS.length) {
         if (timerRef.current) window.clearInterval(timerRef.current);
         const result = makeResult(scenario, new Date());
-        // animate the spoof probability gauge
         const start = performance.now();
         const tick = (t: number) => {
           const p = Math.min(1, (t - start) / 900);
@@ -260,26 +258,26 @@ function Index() {
     .reduce((sum, r) => sum + r.transactionAmount, 0);
 
   return (
-    <main className="min-h-screen bg-background text-foreground scanline">
+    <main className="min-h-screen bg-background text-foreground">
       {/* Header */}
-      <header className="border-b border-border bg-card/60 backdrop-blur sticky top-0 z-20">
-        <div className="mx-auto flex max-w-7xl items-center justify-between px-4 py-3 sm:px-6">
+      <header className="sticky top-0 z-20 border-b border-border bg-card/80 backdrop-blur">
+        <div className="mx-auto flex max-w-6xl items-center justify-between px-4 py-3 sm:px-6">
           <div className="flex min-w-0 items-center gap-3">
-            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-lg bg-primary/15 border border-primary/40">
+            <div className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-primary/10">
               <ShieldCheck className="h-5 w-5 text-primary" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-base font-bold tracking-tight">
-                Voice<span className="text-primary text-glow-primary">Shield</span>
+              <p className="truncate font-display text-base font-semibold tracking-tight">
+                VoiceShield
               </p>
-              <p className="text-[11px] uppercase tracking-widest text-muted-foreground">
+              <p className="text-xs text-muted-foreground">
                 Voice authenticity → fraud decision
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-full border border-risk-low/40 bg-risk-low/10 px-3 py-1.5">
+          <div className="flex items-center gap-2 rounded-full bg-risk-low/10 px-3 py-1.5">
             <span className="relative flex h-2 w-2">
-              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-risk-low opacity-60" />
+              <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-risk-low opacity-50" />
               <span className="relative inline-flex h-2 w-2 rounded-full bg-risk-low" />
             </span>
             <span className="text-xs font-medium text-risk-low">Live monitoring</span>
@@ -288,31 +286,38 @@ function Index() {
       </header>
 
       {/* Hero band */}
-      <section className="relative overflow-hidden border-b border-border">
-        <img
-          src={heroWave}
-          alt="Audio waveform degrading into synthetic artifacts"
-          width={1600}
-          height={700}
-          className="absolute inset-0 h-full w-full object-cover opacity-40"
-        />
-        <div className="absolute inset-0 bg-gradient-to-r from-background via-background/70 to-background/30" />
-        <div className="relative mx-auto max-w-7xl px-4 py-10 sm:px-6 sm:py-14">
-          <p className="text-xs font-semibold uppercase tracking-[0.25em] text-primary">
-            AI voice-clone firewall
-          </p>
-          <h1 className="mt-3 max-w-2xl text-3xl font-bold leading-tight tracking-tight sm:text-5xl">
-            Catch the cloned voice
-            <span className="text-primary text-glow-primary"> before the money moves.</span>
-          </h1>
-          <p className="mt-4 max-w-xl text-sm text-muted-foreground sm:text-base">
-            A 5-second sample is enough to clone a CFO's voice. VoiceShield analyzes every sensitive
-            call and converts voice authenticity into an actionable decision: ALLOW, VERIFY, or BLOCK.
-          </p>
+      <section className="border-b border-border bg-card">
+        <div className="relative mx-auto max-w-6xl px-4 py-10 sm:px-6 sm:py-14">
+          <div className="flex flex-col gap-8 lg:flex-row lg:items-center lg:justify-between">
+            <div className="max-w-xl">
+              <p className="text-xs font-medium text-primary">AI voice-clone firewall</p>
+              <h1 className="mt-3 font-display text-3xl font-semibold leading-tight tracking-tight sm:text-4xl">
+                Catch the cloned voice before the money moves.
+              </h1>
+              <p className="mt-4 text-sm leading-relaxed text-muted-foreground sm:text-base">
+                A 5-second sample is enough to clone a CFO's voice. VoiceShield analyzes every sensitive
+                call and converts voice authenticity into an actionable decision: ALLOW, VERIFY, or BLOCK.
+              </p>
+            </div>
+
+            {/* Soft waveform illustration */}
+            <div className="flex h-28 items-center justify-center gap-[3px] rounded-2xl bg-secondary/60 px-6 lg:w-80">
+              {Array.from({ length: 32 }).map((_, i) => {
+                const h = 20 + Math.abs(Math.sin(i * 0.55)) * 80;
+                return (
+                  <span
+                    key={i}
+                    className="w-[3px] rounded-full bg-primary/30"
+                    style={{ height: `${h}%` }}
+                  />
+                );
+              })}
+            </div>
+          </div>
         </div>
       </section>
 
-      <div className="mx-auto max-w-7xl space-y-6 px-4 py-6 sm:px-6">
+      <div className="mx-auto max-w-6xl space-y-6 px-4 py-6 sm:px-6">
         {/* Stat cards */}
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           <StatCard icon={Radio} label="Calls analyzed" value={String(log.length + 1284)} tone="text-primary" />
@@ -323,9 +328,9 @@ function Index() {
 
         <div className="grid gap-6 lg:grid-cols-5">
           {/* Analysis console */}
-          <section className="rounded-xl border border-border bg-card p-5 card-glow lg:col-span-3">
+          <section className="rounded-2xl card-soft p-5 lg:col-span-3">
             <div className="flex items-center justify-between gap-3">
-              <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+              <h2 className="flex items-center gap-2 font-display text-sm font-medium text-muted-foreground">
                 <ScanLine className="h-4 w-4 text-primary" /> Analysis console
               </h2>
               <span className="font-mono text-[11px] text-muted-foreground">wav2vec2-antispoof · v2.4</span>
@@ -338,7 +343,7 @@ function Index() {
                   key={s.label}
                   onClick={() => runAnalysis(s)}
                   disabled={analyzing}
-                  className="group rounded-lg border border-border bg-background/60 px-3 py-2.5 text-left text-xs transition-colors hover:border-primary/60 hover:bg-primary/5 disabled:opacity-50"
+                  className="group rounded-xl border border-border bg-secondary/50 px-3 py-2.5 text-left text-xs transition-colors hover:border-primary/40 hover:bg-primary/[0.04] disabled:opacity-50"
                 >
                   <span className="block font-medium text-foreground">{s.label}</span>
                   <span className="mt-0.5 block text-muted-foreground">
@@ -348,7 +353,7 @@ function Index() {
               ))}
             </div>
 
-            {/* Upload real audio → preview → /api/analyze */}
+            {/* Upload real audio */}
             <div className="mt-3">
               <input
                 ref={fileRef}
@@ -364,7 +369,7 @@ function Index() {
               <button
                 onClick={() => fileRef.current?.click()}
                 disabled={analyzing}
-                className="flex w-full items-center justify-center gap-2 rounded-lg border border-primary/50 bg-primary/10 px-3 py-2.5 text-xs font-semibold text-primary transition-colors hover:bg-primary/20 disabled:opacity-50"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-3 py-2.5 text-xs font-medium text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
               >
                 <Mic className="h-4 w-4" /> Select audio to analyze
               </button>
@@ -373,12 +378,12 @@ function Index() {
 
             {/* Pending audio preview */}
             {pending && (
-              <div className="mt-3 rounded-lg border border-border bg-background/60 p-3">
+              <div className="mt-3 rounded-2xl border border-border bg-secondary/30 p-3">
                 <div className="flex items-center justify-between gap-2">
                   <p className="min-w-0 truncate font-mono text-xs text-foreground">{pending.file.name}</p>
                   <button
                     onClick={clearPending}
-                    className="shrink-0 rounded p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
+                    className="shrink-0 rounded-lg p-1 text-muted-foreground transition-colors hover:bg-muted hover:text-foreground"
                     aria-label="Discard audio"
                   >
                     <X className="h-3.5 w-3.5" />
@@ -396,17 +401,16 @@ function Index() {
                         void el.play();
                       }
                     }}
-                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-primary/50 bg-primary/10 text-primary transition-colors hover:bg-primary/20"
+                    className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-primary/10 text-primary transition-colors hover:bg-primary/20"
                     aria-label={playing ? "Pause" : "Play"}
                   >
                     {playing ? <Pause className="h-4 w-4" /> : <Play className="h-4 w-4 translate-x-[1px]" />}
                   </button>
-                  {/* Waveform */}
                   <div className="flex h-12 flex-1 items-center gap-[2px] overflow-hidden">
                     {pending.peaks.map((p, i) => (
                       <span
                         key={i}
-                        className={`w-full min-w-[2px] rounded-full ${playing ? "bg-primary" : "bg-primary/50"}`}
+                        className={`w-full min-w-[2px] rounded-full ${playing ? "bg-primary" : "bg-primary/40"}`}
                         style={{ height: `${Math.max(6, p * 100)}%` }}
                       />
                     ))}
@@ -421,25 +425,24 @@ function Index() {
                   className="hidden"
                 />
 
-                {/* Signal info */}
                 <div className="mt-2 flex flex-wrap gap-1.5 font-mono text-[10px]">
-                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                  <span className="rounded-lg bg-card px-2 py-1 text-muted-foreground">
                     {(pending.sampleRate / 1000).toFixed(1)} kHz
                   </span>
-                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                  <span className="rounded-lg bg-card px-2 py-1 text-muted-foreground">
                     {pending.durationSec.toFixed(2)} s
                   </span>
-                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                  <span className="rounded-lg bg-card px-2 py-1 text-muted-foreground">
                     {pending.channels === 1 ? "mono" : `${pending.channels}ch`}
                   </span>
-                  <span className="rounded border border-border bg-card px-2 py-1 text-muted-foreground">
+                  <span className="rounded-lg bg-card px-2 py-1 text-muted-foreground">
                     {(pending.file.size / 1024).toFixed(0)} KB
                   </span>
                   <span
-                    className={`rounded border px-2 py-1 ${
+                    className={`rounded-lg px-2 py-1 ${
                       pending.sampleRate < 16000
-                        ? "border-risk-medium/40 bg-risk-medium/10 text-risk-medium"
-                        : "border-risk-low/40 bg-risk-low/10 text-risk-low"
+                        ? "bg-risk-medium/10 text-risk-medium"
+                        : "bg-risk-low/10 text-risk-low"
                     }`}
                   >
                     {pending.sampleRate < 16000 ? "below 16 kHz model input" : "meets 16 kHz model input"}
@@ -449,7 +452,7 @@ function Index() {
                 <button
                   onClick={() => runUploadedAudio(pending.file)}
                   disabled={analyzing}
-                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-lg bg-primary px-3 py-2.5 text-xs font-semibold text-primary-foreground transition-colors hover:bg-primary/90 disabled:opacity-50"
+                  className="mt-3 flex w-full items-center justify-center gap-2 rounded-xl border border-primary/30 bg-primary/5 px-3 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10 disabled:opacity-50"
                 >
                   <ScanLine className="h-4 w-4" /> Run analysis
                 </button>
@@ -464,12 +467,12 @@ function Index() {
                 return (
                   <div
                     key={p.label}
-                    className={`flex flex-col items-center gap-2 rounded-lg border px-2 py-3 text-center transition-all ${
+                    className={`flex flex-col items-center gap-2 rounded-xl border px-2 py-3 text-center transition-all ${
                       active
-                        ? "border-primary/60 bg-primary/10"
+                        ? "border-primary/40 bg-primary/[0.04]"
                         : done
-                          ? "border-risk-low/40 bg-risk-low/5"
-                          : "border-border bg-background/40 opacity-50"
+                          ? "border-risk-low/30 bg-risk-low/[0.03]"
+                          : "border-border bg-secondary/30 opacity-60"
                     }`}
                   >
                     <p.icon
@@ -482,11 +485,11 @@ function Index() {
             </div>
 
             {/* Waveform animation */}
-            <div className="mt-6 flex h-20 items-center justify-center gap-[3px] rounded-lg border border-border bg-background/60 px-4 overflow-hidden">
+            <div className="mt-6 flex h-20 items-center justify-center gap-[3px] overflow-hidden rounded-2xl bg-secondary/40 px-4">
               {Array.from({ length: 64 }).map((_, i) => (
                 <span
                   key={i}
-                  className={`w-[3px] rounded-full ${analyzing ? "bg-primary animate-waveform" : current ? (current.spoofProbability > 50 ? "bg-risk-critical/70" : "bg-risk-low/70") : "bg-muted"}`}
+                  className={`w-[3px] rounded-full ${analyzing ? "bg-primary/70 animate-waveform" : current ? (current.spoofProbability > 50 ? "bg-risk-critical/60" : "bg-risk-low/60") : "bg-muted"}`}
                   style={{
                     height: `${12 + Math.abs(Math.sin(i * 0.55)) * 60}%`,
                     animationDelay: analyzing ? `${(i % 12) * 0.07}s` : undefined,
@@ -498,12 +501,10 @@ function Index() {
             {/* Result */}
             {current && !analyzing && (
               <div className="mt-6 grid gap-4 sm:grid-cols-[auto_1fr]">
-                <div className="flex flex-col items-center justify-center rounded-xl border border-border bg-background/60 px-6 py-4">
-                  <span className="text-[11px] uppercase tracking-widest text-muted-foreground">
-                    Synthetic voice probability
-                  </span>
+                <div className="flex flex-col items-center justify-center rounded-2xl border border-border bg-secondary/30 px-6 py-4">
+                  <span className="text-[11px] text-muted-foreground">Synthetic voice probability</span>
                   <span
-                    className={`mt-1 font-mono text-5xl font-bold ${
+                    className={`mt-1 font-mono text-4xl font-semibold ${
                       current.spoofProbability > 60
                         ? "text-risk-critical"
                         : current.spoofProbability > 25
@@ -525,12 +526,12 @@ function Index() {
             {/* Verdict */}
             {current && !analyzing && (
               <div
-                className={`mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl border px-4 py-4 ${
+                className={`mt-4 flex flex-wrap items-center justify-between gap-3 rounded-2xl px-4 py-4 ${
                   current.action === "ALLOW"
-                    ? "border-risk-low/50 bg-risk-low/10"
+                    ? "bg-risk-low/[0.06]"
                     : current.action === "VERIFY"
-                      ? "border-risk-medium/50 bg-risk-medium/10"
-                      : "border-risk-critical/50 bg-risk-critical/10"
+                      ? "bg-risk-medium/[0.06]"
+                      : "bg-risk-critical/[0.06]"
                 }`}
               >
                 <div className="flex items-center gap-3">
@@ -542,9 +543,9 @@ function Index() {
                     <ShieldX className="h-8 w-8 text-risk-critical" />
                   )}
                   <div>
-                    <p className="text-lg font-bold tracking-wide">
+                    <p className="font-display text-lg font-semibold tracking-wide">
                       {current.action}
-                      <span className={`ml-2 rounded border px-2 py-0.5 text-xs font-semibold ${RISK_BADGE[current.risk]}`}>
+                      <span className={`ml-2 rounded-lg px-2 py-0.5 text-xs font-medium ${RISK_BADGE[current.risk]}`}>
                         {current.risk} RISK
                       </span>
                     </p>
@@ -563,19 +564,19 @@ function Index() {
           </section>
 
           {/* Call log */}
-          <section className="rounded-xl border border-border bg-card p-5 card-glow lg:col-span-2">
-            <h2 className="flex items-center gap-2 text-sm font-semibold uppercase tracking-widest text-muted-foreground">
+          <section className="rounded-2xl card-soft p-5 lg:col-span-2">
+            <h2 className="flex items-center gap-2 font-display text-sm font-medium text-muted-foreground">
               <PhoneCall className="h-4 w-4 text-primary" /> Recent call decisions
             </h2>
             <ul className="mt-4 space-y-3">
               {log.map((r) => (
-                <li key={r.id + r.timestamp.getTime()} className="rounded-lg border border-border bg-background/50 p-3">
+                <li key={r.id + r.timestamp.getTime()} className="rounded-xl border border-border bg-secondary/30 p-3">
                   <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-2">
                     <div className="min-w-0">
                       <p className="truncate text-sm font-medium">{r.callerName}</p>
                       <p className="truncate text-xs text-muted-foreground">{r.callerRole}</p>
                     </div>
-                    <span className={`shrink-0 rounded border px-2 py-0.5 text-[10px] font-bold ${RISK_BADGE[r.risk]}`}>
+                    <span className={`shrink-0 rounded-lg px-2 py-0.5 text-[10px] font-medium ${RISK_BADGE[r.risk]}`}>
                       {r.action}
                     </span>
                   </div>
@@ -595,20 +596,20 @@ function Index() {
         </div>
 
         {/* Risk policy strip */}
-        <section className="rounded-xl border border-border bg-card p-5 card-glow">
-          <h2 className="text-sm font-semibold uppercase tracking-widest text-muted-foreground">Risk engine policy</h2>
+        <section className="rounded-2xl card-soft p-5">
+          <h2 className="font-display text-sm font-medium text-muted-foreground">Risk engine policy</h2>
           <div className="mt-4 grid gap-3 sm:grid-cols-4">
             {(
               [
-                ["LOW", "Continue", "Authenticity within human range. Call proceeds normally.", "text-risk-low", "border-risk-low/40 bg-risk-low/5"],
-                ["MEDIUM", "Verify", "Step-up: one-time passphrase or verified-device push.", "text-risk-medium", "border-risk-medium/40 bg-risk-medium/5"],
-                ["HIGH", "Alert", "Supervisor notified · transaction queued for manual review.", "text-risk-high", "border-risk-high/40 bg-risk-high/5"],
-                ["CRITICAL", "Block", "Action blocked · MFA + call-back to a number on file.", "text-risk-critical", "border-risk-critical/40 bg-risk-critical/5"],
+                ["LOW", "Continue", "Authenticity within human range. Call proceeds normally.", "text-risk-low", "bg-risk-low/[0.04]"],
+                ["MEDIUM", "Verify", "Step-up: one-time passphrase or verified-device push.", "text-risk-medium", "bg-risk-medium/[0.04]"],
+                ["HIGH", "Alert", "Supervisor notified · transaction queued for manual review.", "text-risk-high", "bg-risk-high/[0.04]"],
+                ["CRITICAL", "Block", "Action blocked · MFA + call-back to a number on file.", "text-risk-critical", "bg-risk-critical/[0.04]"],
               ] as const
             ).map(([level, action, desc, tone, box]) => (
-              <div key={level} className={`rounded-lg border p-4 ${box}`}>
-                <p className={`text-sm font-bold tracking-wide ${tone}`}>
-                  {level} <span className="text-muted-foreground font-normal">→ {action}</span>
+              <div key={level} className={`rounded-xl p-4 ${box}`}>
+                <p className={`text-sm font-semibold tracking-wide ${tone}`}>
+                  {level} <span className="font-normal text-muted-foreground">→ {action}</span>
                 </p>
                 <p className="mt-2 text-xs leading-relaxed text-muted-foreground">{desc}</p>
               </div>
@@ -636,12 +637,12 @@ function StatCard({
   tone: string;
 }) {
   return (
-    <div className="rounded-xl border border-border bg-card p-4 card-glow">
+    <div className="rounded-2xl card-soft p-4">
       <div className="flex items-center gap-2 text-muted-foreground">
         <Icon className={`h-4 w-4 ${tone}`} />
-        <span className="text-[11px] uppercase tracking-widest">{label}</span>
+        <span className="text-[11px] font-medium">{label}</span>
       </div>
-      <p className={`mt-2 font-mono text-2xl font-bold ${tone}`}>{value}</p>
+      <p className={`mt-2 font-mono text-2xl font-semibold ${tone}`}>{value}</p>
     </div>
   );
 }
@@ -654,7 +655,7 @@ function ScoreBar({ label, value }: { label: string; value: number }) {
         <span>{label}</span>
         <span className="font-mono">{value}/100</span>
       </div>
-      <div className="mt-1 h-2 overflow-hidden rounded-full bg-muted">
+      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-muted">
         <div className={`h-full rounded-full ${tone} transition-all duration-700`} style={{ width: `${value}%` }} />
       </div>
     </div>
